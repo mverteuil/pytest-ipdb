@@ -7,7 +7,7 @@ setup(
     # the following makes a plugin available to py.test
     entry_points = {
         'pytest11': [
-            'pytestipdb = pytestipdb.ipdb',
+            'pytestipdb = pytestipdb.ptipdb',
         ]
     },
 )
