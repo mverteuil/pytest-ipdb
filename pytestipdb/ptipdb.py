@@ -25,39 +25,8 @@ class PytestIpdb:
 
     def set_trace(self):
         """ invoke ipdb set_trace debugging, dropping any IO capturing. """
-        import IPython
-        try:
-            stdout = sys.stdout
-            frame = sys._getframe().f_back
-            item = self.item or self.collector
-            if item is not None:
-                capman = item.config.pluginmanager.getplugin("capturemanager")
-                out, err = capman.suspendcapture()
-                # The IPython API changed a bit so we should
-                # support the new version
-                ec, ev, tb = err
-                stdout = sys.stdout
-                sys.stdout = sys.__stdout__
-                sys.stderr.write('\n- TRACEBACK --------------------------------------------------------------------\n')
-                traceback.print_exception(*err)
-                sys.stderr.write('--------------------------------------------------------------------------------\n')
-                if hasattr(IPython, 'InteractiveShell'):
-                    shell = IPython.InteractiveShell()
-                    ip = IPython.core.ipapi.get()
-                    p = IPython.core.debugger.Pdb(ip.colors)
-                # and keep support for older versions
-                else:
-                    shell = IPython.Shell.IPShell(argv=[''])
-                    ip = IPython.ipapi.get()
-                    p = IPython.Debugger.Pdb(ip.options.colors)
-
-                p.reset()
-                # inspect.trace() returns a list of frame information from this
-                # frame to the one that raised the exception being treated
-                frame, filename, line, func_name, ctx, idx = inspect.trace()[-1]
-                p.interaction(frame, tb)
-        finally:
-            sys.stdout = stdout
+        frame = sys._getframe().f_back
+        ipdb.set_trace(frame)
 
 def ipdbitem(item):
     PytestIpdb.item = item
