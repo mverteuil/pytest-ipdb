@@ -26,6 +26,17 @@ class PytestIpdb:
     def set_trace(self):
         """ invoke ipdb set_trace debugging, dropping any IO capturing. """
         frame = sys._getframe().f_back
+        item = self.item or self.collector
+
+        if item is not None:
+            capman = item.config.pluginmanager.getplugin("capturemanager")
+            out, err = capman.suspendcapture()
+            if hasattr(item, 'outerr'):
+                item.outerr = (item.outerr[0] + out, item.outerr[1] + err)
+            tw = py.io.TerminalWriter()
+            tw.line()
+            tw.sep(">", "PDB set_trace (IO-capturing turned off)")
+        frame = sys._getframe().f_back
         ipdb.set_trace(frame)
 
 def ipdbitem(item):
