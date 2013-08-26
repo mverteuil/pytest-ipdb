@@ -87,20 +87,27 @@ class IpdbInvoker:
 
 def post_mortem(tb):
     import IPython
+    stdout = sys.stdout
     try:
-        stdout = sys.stdout
-        frame = sys._getframe().f_back
-        # The IPython API changed a bit so we should
-        # support the new version
-        stdout = sys.stdout
         sys.stdout = sys.__stdout__
-        shell = IPython.InteractiveShell()
-        ip = IPython.core.ipapi.get()
-        p = IPython.core.debugger.Pdb(ip.colors)
+        if hasattr(IPython, 'InteractiveShell'):
+            if hasattr(IPython.InteractiveShell, 'instance'):
+                shell = IPython.InteractiveShell.instance()
+                p = IPython.core.debugger.Pdb(shell.colors)
+            else:
+                shell = IPython.InteractiveShell()
+                ip = IPython.core.ipapi.get()
+                p = IPython.core.debugger.Pdb(ip.colors)
+        # and keep support for older versions
+        else:
+            shell = IPython.Shell.IPShell(argv=[''])
+            ip = IPython.ipapi.get()
+            p = IPython.Debugger.Pdb(ip.options.colors)
         p.reset()
-        # inspect.trace() returns a list of frame information from this
-        # frame to the one that raised the exception being treated
-        ### frame, filename, line, func_name, ctx, idx = inspect.trace()[-1]
+        # inspect.getinnerframes() returns a list of frames information
+        # from this frame to the one that raised the exception being
+        # treated
+        frame, filename, line, func_name, ctx, idx = inspect.getinnerframes(tb)[-1]
         p.interaction(frame, tb)
     finally:
         sys.stdout = stdout
