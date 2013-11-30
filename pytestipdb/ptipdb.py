@@ -3,7 +3,7 @@ import inspect
 import pytest, py
 import sys
 import traceback
-import ipdb
+
 
 def pytest_addoption(parser):
     group = parser.getgroup("general")
@@ -36,6 +36,7 @@ class PytestIpdb:
             tw = py.io.TerminalWriter()
             tw.line()
             tw.sep(">", "PDB set_trace (IO-capturing turned off)")
+        import ipdb
         ipdb.set_trace(frame)
 
 def ipdbitem(item):
