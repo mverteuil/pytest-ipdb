@@ -1,8 +1,9 @@
 """ Interactive debugging with ipdb, the IPython Debugger. """
 import inspect
-import pytest, py
 import sys
-import traceback
+
+import py
+import pytest
 
 
 def pytest_addoption(parser):
@@ -14,9 +15,35 @@ def pytest_addoption(parser):
 def pytest_namespace():
     return {'set_trace': PytestIpdb().set_trace}
 
+def patch_ipdb(config):
+    """patch ipdb.set_trace to first disable stdout capturing"""
+
+    try:
+        original_trace = py.std.ipdb.set_trace
+    except AttributeError:
+        # ipdb not installed
+        return
+
+    def cleanup():
+        py.std.ipdb.set_trace = original_trace
+
+    def set_trace():
+        # we don't want to drop in here, but at the point of the oriainal
+        # set_trace statement
+        frame = sys._getframe().f_back
+
+        capman = config.pluginmanager.getplugin("capturemanager")
+        out, err = capman.suspendcapture()
+        original_trace(frame)
+
+    py.std.ipdb.set_trace = set_trace
+    config._cleanup.append(cleanup)
+
 def pytest_configure(config):
     if config.getvalue("use_ipdb"):
         config.pluginmanager.register(IpdbInvoker(), 'ipdbinvoker')
+
+    patch_ipdb(config)
 
 class PytestIpdb:
     """ Pseudo ipdb that defers to the real ipdb. """
