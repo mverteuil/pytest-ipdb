@@ -27,10 +27,11 @@ def patch_ipdb(config):
     def cleanup():
         py.std.ipdb.set_trace = original_trace
 
-    def set_trace():
+    def set_trace(frame=None):
         # we don't want to drop in here, but at the point of the oriainal
         # set_trace statement
-        frame = sys._getframe().f_back
+        if frame is None:
+            frame = sys._getframe().f_back
 
         capman = config.pluginmanager.getplugin("capturemanager")
         out, err = capman.suspendcapture()
