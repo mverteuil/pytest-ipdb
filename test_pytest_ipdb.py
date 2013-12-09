@@ -1,11 +1,11 @@
+"""set_trace() should drop us into an ipdb debugger
+
+(not break with
+    AttributeError: DontReadFromInput instance has no attribute 'encoding'
+)
+"""
+
 def test_ipdb_set_trace():
-    """ipdb.set_trace() should drop us into an ipdb debugger
-
-    (not break with
-        AttributeError: DontReadFromInput instance has no attribute 'encoding'
-    )
-    """
-
     print "foo"
 
     # press 'c' to complete test
@@ -14,13 +14,6 @@ def test_ipdb_set_trace():
 
 
 def test_pytest_set_trace():
-    """ipdb.set_trace() should drop us into an ipdb debugger
-
-    (not break with
-        AttributeError: DontReadFromInput instance has no attribute 'encoding'
-    )
-    """
-
     print "foo"
 
     # press 'c' to complete test
