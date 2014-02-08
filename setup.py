@@ -21,6 +21,10 @@ setup(
         "Topic :: Software Development :: Debuggers",
         "Topic :: Software Development :: Testing",
     ],
+    install_requires=[
+        'pytest',
+        'ipdb',
+    ],
     # the following makes a plugin available to py.test
     entry_points = {
         "pytest11": [
