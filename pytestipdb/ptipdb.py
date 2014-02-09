@@ -12,9 +12,6 @@ def pytest_addoption(parser):
                action="store_true", dest="use_ipdb", default=False,
                help="Starts the interactive IPython debugger on errors.")
 
-def pytest_namespace():
-    return {'set_trace': PytestIpdb().set_trace}
-
 def patch_ipdb(config):
     """patch ipdb.set_trace to first disable stdout capturing"""
 
@@ -42,8 +39,8 @@ def patch_ipdb(config):
 def pytest_configure(config):
     if config.getvalue("use_ipdb"):
         config.pluginmanager.register(IpdbInvoker(), 'ipdbinvoker')
-
-    patch_ipdb(config)
+        patch_ipdb(config)
+        pytest.set_trace = PytestIpdb().set_trace
 
 class PytestIpdb:
     """ Pseudo ipdb that defers to the real ipdb. """
