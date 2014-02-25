@@ -75,7 +75,7 @@ def test_ipdb_set_trace(testdir, option):
 
     if option.no_ipdb:
         result.stdout.fnmatch_lines([
-            "*AttributeError: DontReadFromInput instance has no attribute 'encoding'",
+            "*AttributeError: *DontReadFromInput* has no attribute 'encoding'",
         ])
     else:
         result.stdout.fnmatch_lines([
