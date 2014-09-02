@@ -40,9 +40,9 @@ def patch_ipdb(config):
     config._cleanup.append(cleanup)
 
 def pytest_configure(config):
+    patch_ipdb(config)
     if config.getvalue("use_ipdb"):
         config.pluginmanager.register(IpdbInvoker(), 'ipdbinvoker')
-        patch_ipdb(config)
         pytest.set_trace = PytestIpdb().set_trace
 
 class PytestIpdb:

@@ -72,12 +72,6 @@ def test_ipdb_set_trace(testdir, option):
     )
 
     result = testdir.runpytest(*option.args)
-
-    if option.no_ipdb:
-        result.stdout.fnmatch_lines([
-            "*AttributeError: DontReadFromInput instance has no attribute 'encoding'",
-        ])
-    else:
-        result.stdout.fnmatch_lines([
-            'ipdb> ',
-        ])
+    result.stdout.fnmatch_lines([
+        'ipdb> ',
+    ])
