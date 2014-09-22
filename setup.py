@@ -22,7 +22,7 @@ setup(
         "Topic :: Software Development :: Testing",
     ],
     install_requires=[
-        'pytest',
+        'pytest>=2.6.3',
         'ipdb',
     ],
     # the following makes a plugin available to py.test
