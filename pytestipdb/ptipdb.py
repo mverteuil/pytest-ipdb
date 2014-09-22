@@ -2,6 +2,7 @@
 import inspect
 import sys
 
+import ipdb
 import py
 import pytest
 
@@ -16,13 +17,13 @@ def patch_ipdb(config):
     """patch ipdb.set_trace to first disable stdout capturing"""
 
     try:
-        original_trace = py.std.ipdb.set_trace
+        original_trace = ipdb.set_trace
     except AttributeError:
         # ipdb not installed
         return
 
     def cleanup():
-        py.std.ipdb.set_trace = original_trace
+        ipdb.set_trace = original_trace
 
     def set_trace(frame=None):
         # we don't want to drop in here, but at the point of the oriainal
@@ -33,17 +34,19 @@ def patch_ipdb(config):
         capman = config.pluginmanager.getplugin("capturemanager")
         if capman:
             # It might be not available, e.g. on pytest teardown.
-            out, err = capman.suspendcapture()
+            out, err = capman.suspendcapture(in_=True)
         original_trace(frame)
 
     py.std.ipdb.set_trace = set_trace
     config._cleanup.append(cleanup)
 
+
 def pytest_configure(config):
     patch_ipdb(config)
+    pytest.set_trace = PytestIpdb().set_trace
     if config.getvalue("use_ipdb"):
-        config.pluginmanager.register(IpdbInvoker(), 'ipdbinvoker')
-        pytest.set_trace = PytestIpdb().set_trace
+        config.pluginmanager.register(IpdbInvoke(), 'ipdbinvoke')
+
 
 class PytestIpdb:
     """ Pseudo ipdb that defers to the real ipdb. """
@@ -57,7 +60,7 @@ class PytestIpdb:
 
         if item is not None:
             capman = item.config.pluginmanager.getplugin("capturemanager")
-            out, err = capman.suspendcapture()
+            out, err = capman.suspendcapture(in_=True)
             if hasattr(item, 'outerr'):
                 item.outerr = (item.outerr[0] + out, item.outerr[1] + err)
             tw = py.io.TerminalWriter()
@@ -66,51 +69,51 @@ class PytestIpdb:
         import ipdb
         ipdb.set_trace(frame)
 
+
 def ipdbitem(item):
     PytestIpdb.item = item
 
 pytest_runtest_setup = pytest_runtest_call = pytest_runtest_teardown = ipdbitem
 
-@pytest.mark.tryfirst
-def pytest_make_collect_report(__multicall__, collector):
-    try:
-        PytestIpdb.collector = collector
-        return __multicall__.execute()
-    finally:
-        PytestIpdb.collector = None
 
-def pytest_runtest_makereport():
-    PytestIpdb.item = None
+class IpdbInvoke:
+    def pytest_exception_interact(self, node, call, report):
+        capman = node.config.pluginmanager.getplugin("capturemanager")
+        if capman:
+            capman.suspendcapture(in_=True)
+        _enter_ipdb(node, call.excinfo, report)
 
-class IpdbInvoker:
-    @pytest.mark.tryfirst
-    def pytest_runtest_makereport(self, item, call, __multicall__):
-        rep = __multicall__.execute()
-        if not call.excinfo or \
-            call.excinfo.errisinstance(pytest.skip.Exception) or \
-            call.excinfo.errisinstance(py.std.bdb.BdbQuit):
-            return rep
-        if hasattr(rep, "wasxfail"):
-            return rep
-        # we assume that the above execute() suspended capturing
-        # XXX we re-use the TerminalReporter's terminalwriter
-        # because this seems to avoid some encoding related troubles
-        # for not completely clear reasons.
-        tw = item.config.pluginmanager.getplugin("terminalreporter")._tw
-        tw.line()
-        tw.sep(">", "traceback")
-        rep.toterminal(tw)
-        tw.sep(">", "entering PDB")
-        # A doctest.UnexpectedException is not useful for post_mortem.
-        # Use the underlying exception instead:
-        if isinstance(call.excinfo.value, py.std.doctest.UnexpectedException):
-            tb = call.excinfo.value.exc_info[2]
-        else:
-            tb = call.excinfo._excinfo[2]
-
+    def pytest_internalerror(self, excrepr, excinfo):
+        for line in str(excrepr).split("\n"):
+            sys.stderr.write("INTERNALERROR> %s\n" %line)
+            sys.stderr.flush()
+        tb = _postmortem_traceback(excinfo)
         post_mortem(tb)
-        rep._ipdbshown = True
-        return rep
+
+
+def _enter_ipdb(node, excinfo, rep):
+    # XXX we re-use the TerminalReporter's terminalwriter
+    # because this seems to avoid some encoding related troubles
+    # for not completely clear reasons.
+    tw = node.config.pluginmanager.getplugin("terminalreporter")._tw
+    tw.line()
+    tw.sep(">", "traceback")
+    rep.toterminal(tw)
+    tw.sep(">", "entering PDB")
+    tb = _postmortem_traceback(excinfo)
+    post_mortem(tb)
+    rep._pdbshown = True
+    return rep
+
+
+def _postmortem_traceback(excinfo):
+    # A doctest.UnexpectedException is not useful for post_mortem.
+    # Use the underlying exception instead:
+    from doctest import UnexpectedException
+    if isinstance(excinfo.value, UnexpectedException):
+        return excinfo.value.exc_info[2]
+    else:
+        return excinfo._excinfo[2]
 
 
 def post_mortem(tb):
@@ -139,18 +142,3 @@ def post_mortem(tb):
         p.interaction(frame, tb)
     finally:
         sys.stdout = stdout
-"""
-def post_mortem(tb):
-    pdb = py.std.pdb
-    class Pdb(pdb.Pdb):
-        def get_stack(self, f, t):
-            stack, i = pdb.Pdb.get_stack(self, f, t)
-            if f is None:
-                i = max(0, len(stack) - 1)
-                while i and stack[i][0].f_locals.get("__tracebackhide__", False):
-                    i-=1
-            return stack, i
-    p = Pdb()
-    p.reset()
-    p.interaction(None, t)
-"""
