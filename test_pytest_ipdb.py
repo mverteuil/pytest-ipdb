@@ -52,13 +52,10 @@ def test_pytest_set_trace(testdir, option):
 
     result = testdir.runpytest(*option.args)
 
-    if option.no_ipdb:
-        result.stdout.fnmatch_lines(['(Pdb) '])
-    else:
-        result.stdout.fnmatch_lines([
-            '*PDB set_trace (IO-capturing turned off)*',
-            'ipdb> ',
-        ])
+    result.stdout.fnmatch_lines([
+        '*PDB set_trace (IO-capturing turned off)*',
+        'ipdb> ',
+    ])
 
 
 def test_ipdb_set_trace(testdir, option):
@@ -72,6 +69,7 @@ def test_ipdb_set_trace(testdir, option):
     )
 
     result = testdir.runpytest(*option.args)
+
     result.stdout.fnmatch_lines([
         'ipdb> ',
     ])
