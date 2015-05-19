@@ -21,3 +21,13 @@ To install
 To use: run pytest with `--ipdb` instead of `--pdb`.
 
 [![Build Status](https://travis-ci.org/mverteuil/pytest-ipdb.svg)](https://travis-ci.org/mverteuil/pytest-ipdb)
+
+Now you can breakpoints in your in your code:
+
+    import ipdb ; ipdb.set_trace()
+
+... or ...:
+
+    import pytest ; pytest.set_trace()
+
+   
