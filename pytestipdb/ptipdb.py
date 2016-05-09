@@ -146,8 +146,11 @@ def post_mortem(tb):
         # inspect.getinnerframes() returns a list of frames information
         # from this frame to the one that raised the exception being
         # treated
-        frame, filename, line, func_name, ctx, idx = (
-            inspect.getinnerframes(tb)[-1])
-        p.interaction(frame, tb)
+        frames = [
+            frame_info[0] for frame_info in inspect.getinnerframes(tb)][::-1]
+        n_skip = next(idx for idx, frame in enumerate(frames)
+                      if not frame.f_locals.get("__tracebackhide__", False))
+        p.cmdqueue = ["up"] * n_skip
+        p.interaction(frames[0], tb)
     finally:
         sys.stdout = stdout
