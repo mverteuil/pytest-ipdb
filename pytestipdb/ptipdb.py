@@ -1,20 +1,26 @@
-""" Interactive debugging with ipdb, the IPython Debugger. """
+"""Interactive debugging with ipdb, the IPython Debugger.
+"""
+
+from doctest import UnexpectedException
 import inspect
 import sys
 
 import ipdb
+import IPython
 import py
 import pytest
 
 
 def pytest_addoption(parser):
     group = parser.getgroup("general")
-    group._addoption('--ipdb',
+    group._addoption("--ipdb",
                action="store_true", dest="use_ipdb", default=False,
                help="Starts the interactive IPython debugger on errors.")
 
+
 def patch_ipdb(config):
-    """patch ipdb.set_trace to first disable stdout capturing"""
+    """Patch ipdb.set_trace to first disable stdout capturing.
+    """
 
     try:
         original_trace = ipdb.set_trace
@@ -26,7 +32,7 @@ def patch_ipdb(config):
         ipdb.set_trace = original_trace
 
     def set_trace(frame=None):
-        # we don't want to drop in here, but at the point of the oriainal
+        # we don"t want to drop in here, but at the point of the original
         # set_trace statement
         if frame is None:
             frame = sys._getframe().f_back
@@ -45,33 +51,37 @@ def pytest_configure(config):
     patch_ipdb(config)
     pytest.set_trace = PytestIpdb().set_trace
     if config.getvalue("use_ipdb"):
-        config.pluginmanager.register(IpdbInvoke(), 'ipdbinvoke')
+        config.pluginmanager.register(IpdbInvoke(), "ipdbinvoke")
 
 
 class PytestIpdb:
-    """ Pseudo ipdb that defers to the real ipdb. """
+    """Pseudo ipdb that defers to the real ipdb.
+    """
+
     item = None
     collector = None
 
     def set_trace(self):
-        """ invoke ipdb set_trace debugging, dropping any IO capturing. """
+        """Invoke ipdb set_trace debugging, dropping any IO capturing.
+        """
+
         frame = sys._getframe().f_back
         item = self.item or self.collector
 
         if item is not None:
             capman = item.config.pluginmanager.getplugin("capturemanager")
             out, err = capman.suspendcapture(in_=True)
-            if hasattr(item, 'outerr'):
+            if hasattr(item, "outerr"):
                 item.outerr = (item.outerr[0] + out, item.outerr[1] + err)
             tw = py.io.TerminalWriter()
             tw.line()
             tw.sep(">", "PDB set_trace (IO-capturing turned off)")
-        import ipdb
         ipdb.set_trace(frame)
 
 
 def ipdbitem(item):
     PytestIpdb.item = item
+
 
 pytest_runtest_setup = pytest_runtest_call = pytest_runtest_teardown = ipdbitem
 
@@ -109,7 +119,6 @@ def _enter_ipdb(node, excinfo, rep):
 def _postmortem_traceback(excinfo):
     # A doctest.UnexpectedException is not useful for post_mortem.
     # Use the underlying exception instead:
-    from doctest import UnexpectedException
     if isinstance(excinfo.value, UnexpectedException):
         return excinfo.value.exc_info[2]
     else:
@@ -117,12 +126,11 @@ def _postmortem_traceback(excinfo):
 
 
 def post_mortem(tb):
-    import IPython
     stdout = sys.stdout
     try:
         sys.stdout = sys.__stdout__
-        if hasattr(IPython, 'InteractiveShell'):
-            if hasattr(IPython.InteractiveShell, 'instance'):
+        if hasattr(IPython, "InteractiveShell"):
+            if hasattr(IPython.InteractiveShell, "instance"):
                 shell = IPython.InteractiveShell.instance()
                 p = IPython.core.debugger.Pdb(shell.colors)
             else:
@@ -131,14 +139,18 @@ def post_mortem(tb):
                 p = IPython.core.debugger.Pdb(ip.colors)
         # and keep support for older versions
         else:
-            shell = IPython.Shell.IPShell(argv=[''])
+            shell = IPython.Shell.IPShell(argv=[""])
             ip = IPython.ipapi.get()
             p = IPython.Debugger.Pdb(ip.options.colors)
         p.reset()
         # inspect.getinnerframes() returns a list of frames information
         # from this frame to the one that raised the exception being
         # treated
-        frame, filename, line, func_name, ctx, idx = inspect.getinnerframes(tb)[-1]
-        p.interaction(frame, tb)
+        frames = [
+            frame_info[0] for frame_info in inspect.getinnerframes(tb)][::-1]
+        n_skip = next(idx for idx, frame in enumerate(frames)
+                      if not frame.f_locals.get("__tracebackhide__", False))
+        p.cmdqueue = ["up"] * n_skip
+        p.interaction(frames[0], tb)
     finally:
         sys.stdout = stdout
