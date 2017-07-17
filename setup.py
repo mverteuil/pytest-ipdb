@@ -3,13 +3,12 @@ from setuptools import setup
 setup(
     name="pytest-ipdb",
     packages=["pytestipdb"],
-    version="0.1.dev2",
+    version="0.1",
     description="A py.test plug-in to enable drop to ipdb debugger on test failure.",
     author="Matthew de Verteuil",
     author_email="onceuponajooks@gmail.com",
     url="https://github.com/mverteuil/pytest-ipdb",
     classifiers=[
-        "Development Status :: 2 - Pre-Alpha",
         "Environment :: Console",
         "Environment :: Plugins",
         "Intended Audience :: Developers",
