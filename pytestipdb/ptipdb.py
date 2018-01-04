@@ -34,7 +34,7 @@ def patch_ipdb(config):
         capman = config.pluginmanager.getplugin("capturemanager")
         if capman:
             # It might be not available, e.g. on pytest teardown.
-            out, err = capman.suspendcapture(in_=True)
+            out, err = capman.suspend_global_capture(in_=True)
         original_trace(frame)
 
     py.std.ipdb.set_trace = set_trace
