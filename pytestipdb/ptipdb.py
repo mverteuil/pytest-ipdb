@@ -60,7 +60,7 @@ class PytestIpdb:
 
         if item is not None:
             capman = item.config.pluginmanager.getplugin("capturemanager")
-            out, err = capman.suspendcapture(in_=True)
+            out, err = capman.suspend_global_capture(in_=True)
             if hasattr(item, 'outerr'):
                 item.outerr = (item.outerr[0] + out, item.outerr[1] + err)
             tw = py.io.TerminalWriter()
@@ -80,7 +80,7 @@ class IpdbInvoke:
     def pytest_exception_interact(self, node, call, report):
         capman = node.config.pluginmanager.getplugin("capturemanager")
         if capman:
-            capman.suspendcapture(in_=True)
+            capman.suspend_global_capture(in_=True)
         _enter_ipdb(node, call.excinfo, report)
 
     def pytest_internalerror(self, excrepr, excinfo):
