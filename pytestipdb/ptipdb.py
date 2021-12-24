@@ -26,7 +26,7 @@ def patch_ipdb(config):
         ipdb.set_trace = original_trace
 
     def set_trace(frame=None):
-        # we don't want to drop in here, but at the point of the oriainal
+        # we don't want to drop in here, but at the point of the original
         # set_trace statement
         if frame is None:
             frame = sys._getframe().f_back
